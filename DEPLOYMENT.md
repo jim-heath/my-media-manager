@@ -122,7 +122,7 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    location ~ ^/(api|uploads|admin|content-manager|content-type-builder|users-permissions|i18n) {
+    location ~ ^/(api|upload|admin|content-manager|content-type-builder|users-permissions|i18n) {
         proxy_pass http://127.0.0.1:<BACKEND_PORT>;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
