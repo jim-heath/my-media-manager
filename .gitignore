@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor / AI tooling
+.DS_Store
+*.log
+Thumbs.db
+.windsurf/
+.idea/
+.vscode/

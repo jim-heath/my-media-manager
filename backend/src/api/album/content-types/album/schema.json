@@ -1,0 +1,68 @@
+{
+  "kind": "collectionType",
+  "collectionName": "albums",
+  "info": {
+    "singularName": "album",
+    "pluralName": "albums",
+    "displayName": "Album",
+    "description": "Music album with metadata"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "upc": {
+      "type": "string",
+      "required": false,
+      "unique": true,
+      "description": "Universal Product Code (optional; some CDs have no barcode)"
+    },
+    "artist": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "release_date": {
+      "type": "string",
+      "description": "Release date (YYYY-MM-DD or YYYY)"
+    },
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "mbid": {
+      "type": "string",
+      "description": "MusicBrainz Identifier"
+    },
+    "discogs_id": {
+      "type": "string",
+      "description": "Discogs Release ID"
+    },
+    "spotify_id": {
+      "type": "string",
+      "description": "Spotify Album ID"
+    },
+    "tracks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::track.track",
+      "mappedBy": "album"
+    },
+    "metadata_status": {
+      "type": "enumeration",
+      "enum": ["pending", "fetching", "completed", "failed"],
+      "default": "pending",
+      "description": "Status of metadata enrichment"
+    },
+    "fetch_error": {
+      "type": "text",
+      "description": "Error message if metadata fetch failed"
+    }
+  }
+}
