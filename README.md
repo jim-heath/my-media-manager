@@ -21,6 +21,10 @@ A personal music collection manager that imports albums, automatically enriches 
 - **Export** — download your collection as CSV (album summary) or JSON (full album + track data)
 - **Advanced tools** — trigger metadata enrichment or cover fetching for the whole collection, view recently added albums, inspect issues
 
+## Demo Site
+
+View the demo site at: https://mmm.restlessmindsstudio.com
+
 ## Prerequisites
 
 - Node.js 18–20 and npm
