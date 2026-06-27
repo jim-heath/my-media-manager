@@ -1,133 +1,144 @@
 # My Media Manager
 
-A web-based application for enriching music collection databases with metadata from external sources (MusicBrainz, Discogs, Cover Art Archive).
+A personal music collection manager that imports albums, automatically enriches them with metadata and cover art from MusicBrainz, Discogs, and the Cover Art Archive, and lets you browse and export your collection.
+
+![My Media Manager — Browse Collection](screenshot.png)
 
 ## Architecture
 
-- **Backend**: Strapi (Node.js headless CMS)
-- **Frontend**: Angular 17
-- **Database**: SQLite
+- **Backend**: Strapi 5 (Node.js headless CMS) — REST API, media storage, admin panel
+- **Frontend**: Angular 17 — single-page app served as static files
+- **Database**: SQLite (development) / MySQL (production)
+- **Metadata sources**: MusicBrainz, Discogs, Cover Art Archive, iTunes, Deezer
 
 ## Features
 
-- **FR-1: Import Collection** - Import albums via CSV (UPC, artist, title)
-- **FR-2: Metadata Lookup** - Query MusicBrainz and Discogs APIs
-- **FR-3: Fetch Cover Art** - Download album covers (under 1MB limit)
-- **FR-4: Fetch Tracklist** - Retrieve complete track listings
-- **FR-5: Fetch Release Date** - Get release year/date information
-- **FR-6: Search and Browse** - Browse collection with search and filters
-- **FR-7: Export Dataset** - Export to CSV/JSON formats
+- **Add albums** individually (artist, title, UPC, release date, MusicBrainz ID, Discogs ID, optional cover upload) or in bulk via CSV import
+- **Automatic metadata enrichment** — fetches release date, track listings, and cover art from MusicBrainz and Discogs after import
+- **Cover art** — downloads and stores album covers; thumbnails generated automatically
+- **Browse and search** — grid view with cover art, search by artist or title, filter by metadata status or issues (missing covers / failed enrichment)
+- **Album detail** — full track listing with track lengths, release date, and links to source records
+- **Export** — download your collection as CSV (album summary) or JSON (full album + track data)
+- **Advanced tools** — trigger metadata enrichment or cover fetching for the whole collection, view recently added albums, inspect issues
 
 ## Prerequisites
 
-- Node.js 18+ and npm
-- Modern web browser
+- Node.js 18–20 and npm
 
-## Installation
+## Local development
 
-### Backend (Strapi)
+### 1. Backend
 
 ```bash
 cd backend
 npm install
 ```
 
-Create `.env` file:
+Copy the example env file and fill in values:
+```bash
+cp .env.example .env
+```
+
+Key variables for development (SQLite is used by default):
 ```
 HOST=0.0.0.0
 PORT=1337
-APP_KEYS=your-app-key-1,your-app-key-2
-API_TOKEN_SALT=your-token-salt
-ADMIN_JWT_SECRET=your-admin-jwt-secret
-TRANSFER_TOKEN_SALT=your-transfer-token-salt
-JWT_SECRET=your-jwt-secret
-DATABASE_FILENAME=.tmp/data.db
-DISCOGS_TOKEN=your-discogs-token  # Optional, for Discogs API
+APP_KEYS=key1,key2,key3,key4
+API_TOKEN_SALT=
+ADMIN_JWT_SECRET=
+TRANSFER_TOKEN_SALT=
+JWT_SECRET=
+APP_USER_AGENT=MyMediaManager/1.0 (your-email@example.com)
+DISCOGS_TOKEN=          # optional (Discogs metadata)
 ```
 
-Start the backend:
+MusicBrainz, Cover Art Archive, iTunes, and Deezer require no credentials. Discogs is optional but improves match quality; set either `DISCOGS_TOKEN` or `DISCOGS_CONSUMER_KEY`/`DISCOGS_CONSUMER_SECRET`.
+
+> **Note**: Spotify support is planned for a future release (a `spotify_id` field already exists on albums).
+
+Generate each secret with:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Start the backend in development mode (auto-reloads):
 ```bash
 npm run develop
 ```
 
-Admin panel: http://localhost:1337/admin
-API base URL: http://localhost:1337/api
+- Admin panel: http://localhost:1337/admin (create your admin account on first run)
+- API: http://localhost:1337/api
 
-### Frontend (Angular)
+### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-Start the frontend:
-```bash
 npm start
 ```
 
-The app will be available at http://localhost:4200
+The dev server runs at http://localhost:4200 and proxies `/api` and `/uploads` requests to the backend via `proxy.conf.json`.
 
-## Usage
+## Adding albums
 
-### 1. Import Collection
+### Single album
 
-Go to the Import page and upload a CSV file with columns:
-```
-upc,artist,title
-602527478239,Miles Davis,Kind of Blue
-```
+Use the **Add Albums → Single Album** tab. Artist and title are required; UPC, release date, MusicBrainz ID, Discogs ID, and a cover image are optional. After saving, metadata enrichment runs automatically in the background.
 
-The system will automatically fetch metadata in the background.
+### CSV import
 
-### 2. Browse Albums
+Use the **Add Albums → Import CSV** tab. Format:
 
-Use the Browse page to:
-- Search by artist or album title
-- View album details with cover art
-- See track listings
-- Filter by metadata status
-
-### 3. Export Data
-
-Export your enriched collection to:
-- CSV (album summary)
-- JSON (complete album + track data)
-
-## API Rate Limits
-
-The system respects API rate limits:
-- **MusicBrainz**: 1 request per second (per SRS requirement)
-- **Discogs**: Uses authenticated requests (configure token in .env)
-
-## Database Schema
-
-### Albums
-- upc (string, unique, required)
-- artist (string, required)
-- title (string, required)
-- release_date (string)
-- cover (media)
-- mbid (string) - MusicBrainz ID
-- discogs_id (string) - Discogs ID
-- metadata_status (enum: pending/fetching/completed/failed)
-
-### Tracks
-- track_number (integer, required)
-- title (string, required)
-- length (integer) - in seconds
-- album (relation to Album)
-
-## Testing with Sample Data
-
-Create a test CSV:
 ```csv
 upc,artist,title
-602527478239,Miles Davis,Kind of Blue
-5099751637627,The Beatles,Abbey Road
-4988064581250,Pink Floyd,The Dark Side of the Moon
-075596058220,Radiohead,OK Computer
-602517798652,John Coltrane,A Love Supreme
+782388079327,:wumpscut:,Women And Satan First
+016861937027,Obituary,Cause Of Death
+745316143323,At The Gates,Slaughter Of The Soul
 ```
+
+`upc` is optional per row. Metadata is fetched automatically after import.
+
+## API rate limits
+
+- **MusicBrainz**: 1 request/second (required by their terms of service — set a real `APP_USER_AGENT` or requests will be blocked)
+- **Discogs**: authenticated requests via `DISCOGS_TOKEN` or consumer key/secret
+
+## Database schema
+
+### Album
+| Field | Type | Notes |
+|---|---|---|
+| `upc` | string | unique, optional |
+| `artist` | string | required |
+| `title` | string | required |
+| `release_date` | string | YYYY, YYYY-MM, or YYYY-MM-DD |
+| `cover` | media | stored in `public/uploads/` |
+| `mbid` | string | MusicBrainz release ID |
+| `discogs_id` | string | Discogs release ID |
+| `metadata_status` | enum | `pending` / `fetching` / `completed` / `failed` |
+
+### Track
+| Field | Type | Notes |
+|---|---|---|
+| `track_number` | integer | required |
+| `title` | string | required |
+| `length` | integer | seconds |
+| `album` | relation | belongs to Album |
+
+## Testing
+
+```bash
+cd backend
+npm test              # all tests (unit + integration)
+npm run test:unit     # unit tests only
+npm run test:integration
+```
+
+Integration tests boot an isolated Strapi instance against a temporary SQLite database (`.tmp/test.db`) — they never touch your development or production data.
+
+## Production deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the full guide (nginx, MySQL, pm2, SSL, data migration).
 
 ## License
 
