@@ -15,7 +15,7 @@ export default {
       }
     },
     options: {
-      rule: '*/5 * * * *',  // Every 5 minutes
+      rule: '* 0 * * *',  // Every day at midnight
     },
   },
 };
