@@ -1,0 +1,14 @@
+{
+  // IDE-only tsconfig so the editor resolves Jest and Node globals in test
+  // files. Tests are compiled by ts-jest at runtime (see jest.config.js);
+  // the root tsconfig excludes tests/ from the Strapi build.
+  "extends": "@strapi/typescript-utils/tsconfigs/server",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "./**/*.ts",
+    "../types/generated/**/*.d.ts"
+  ]
+}

@@ -3,7 +3,16 @@ import { createObjectCsvWriter } from 'csv-writer';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { validateAlbumInput, sanitizeText } from '../validation';
+import {
+  validateAlbumInput,
+  sanitizeText,
+  parsePagination,
+  escapeCsvFormula,
+  detectImageType
+} from '../validation';
+
+const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMPORT_ROWS = 10000;
 
 export default factories.createCoreController('api::album.album', ({ strapi }) => ({
   // FR-1: Import Collection
@@ -15,6 +24,11 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     }
 
     const file: any = Array.isArray(files.file) ? files.file[0] : files.file;
+
+    if (file.size > MAX_IMPORT_FILE_SIZE) {
+      return ctx.badRequest('CSV file too large. Maximum size is 5MB.');
+    }
+
     const results = {
       imported: 0,
       failed: 0,
@@ -24,6 +38,10 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     try {
       const buffer = fs.readFileSync(file.filepath || file.path);
       const lines = buffer.toString().split('\n').filter(line => line.trim());
+
+      if (lines.length - 1 > MAX_IMPORT_ROWS) {
+        return ctx.badRequest(`CSV has too many rows. Maximum is ${MAX_IMPORT_ROWS}.`);
+      }
       
       // Parse CSV header
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
@@ -121,12 +139,12 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     });
 
     const records = albums.map(album => ({
-      upc: album.upc,
-      artist: album.artist,
-      title: album.title,
-      release_date: album.release_date || '',
-      mbid: album.mbid || '',
-      discogs_id: album.discogs_id || '',
+      upc: escapeCsvFormula(album.upc),
+      artist: escapeCsvFormula(album.artist),
+      title: escapeCsvFormula(album.title),
+      release_date: escapeCsvFormula(album.release_date || ''),
+      mbid: escapeCsvFormula(album.mbid || ''),
+      discogs_id: escapeCsvFormula(album.discogs_id || ''),
       track_count: (album as any).tracks?.length || 0
     }));
 
@@ -138,7 +156,11 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
 
     // Cleanup after sending
     ctx.res.on('finish', () => {
-      fs.unlinkSync(tempFile);
+      try {
+        fs.unlinkSync(tempFile);
+      } catch (e) {
+        // Already removed or inaccessible; nothing to do
+      }
     });
   },
 
@@ -155,7 +177,8 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
 
   // FR-6: Search and Browse
   async search(ctx) {
-    const { q, artist, page = 1, pageSize = 20 } = ctx.query;
+    const { q, artist } = ctx.query;
+    const { page, pageSize } = parsePagination(ctx.query);
 
     const filters: any = {};
     
@@ -174,8 +197,8 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       filters,
       populate: ['tracks', 'cover'],
       sort: ['artist:asc', 'title:asc'],
-      start: (parseInt(page as string) - 1) * parseInt(pageSize as string),
-      limit: parseInt(pageSize as string)
+      start: (page - 1) * pageSize,
+      limit: pageSize
     });
 
     const count = await strapi.documents('api::album.album').count({ filters });
@@ -184,9 +207,9 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       data: albums,
       meta: {
         pagination: {
-          page: parseInt(page as string),
-          pageSize: parseInt(pageSize as string),
-          pageCount: Math.ceil(count / parseInt(pageSize as string)),
+          page,
+          pageSize,
+          pageCount: Math.ceil(count / pageSize),
           total: count
         }
       }
@@ -326,7 +349,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const { upc, artist, title, release_date, mbid, discogs_id } = ctx.request.body;
 
     const validationError = validateAlbumInput(
-      { upc, artist, title, release_date },
+      { upc, artist, title, release_date, mbid, discogs_id },
       { requireNames: true }
     );
     if (validationError) {
@@ -358,7 +381,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const { upc, artist, title, release_date, mbid, discogs_id } = ctx.request.body;
 
     const validationError = validateAlbumInput(
-      { upc, artist, title, release_date },
+      { upc, artist, title, release_date, mbid, discogs_id },
       { requireNames: false }
     );
     if (validationError) {
@@ -414,10 +437,18 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       return ctx.badRequest('File too large. Maximum size is 5MB.');
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    const mimetype = file.mimetype || file.type;
-    if (!allowedTypes.includes(mimetype)) {
+    // Validate file type via magic bytes (client-supplied MIME types are spoofable)
+    let detectedType: ReturnType<typeof detectImageType>;
+    try {
+      const fd = fs.openSync(file.filepath || file.path, 'r');
+      const header = Buffer.alloc(12);
+      fs.readSync(fd, header, 0, 12, 0);
+      fs.closeSync(fd);
+      detectedType = detectImageType(header);
+    } catch (e) {
+      return ctx.badRequest('Could not read uploaded file.');
+    }
+    if (!detectedType) {
       return ctx.badRequest('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
     }
 
@@ -533,7 +564,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
 
   // Identify albums with metadata errors or missing covers
   async issues(ctx) {
-    const { page = 1, pageSize = 20 } = ctx.query;
+    const { page, pageSize } = parsePagination(ctx.query);
 
     const filters: any = {
       $or: [
@@ -546,8 +577,8 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       filters,
       populate: ['tracks', 'cover'],
       sort: ['artist:asc', 'title:asc'],
-      start: (parseInt(page as string) - 1) * parseInt(pageSize as string),
-      limit: parseInt(pageSize as string)
+      start: (page - 1) * pageSize,
+      limit: pageSize
     });
 
     const count = await strapi.documents('api::album.album').count({ filters });
@@ -570,9 +601,9 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       data,
       meta: {
         pagination: {
-          page: parseInt(page as string),
-          pageSize: parseInt(pageSize as string),
-          pageCount: Math.ceil(count / parseInt(pageSize as string)),
+          page,
+          pageSize,
+          pageCount: Math.ceil(count / pageSize),
           total: count
         }
       }

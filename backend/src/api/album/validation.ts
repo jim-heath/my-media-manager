@@ -4,6 +4,9 @@
 export const UPC_REGEX = /^\d{12,14}$/;
 export const RELEASE_DATE_REGEX = /^\d{4}(-\d{2})?(-\d{2})?$/;
 export const MAX_NAME_LENGTH = 255;
+export const MBID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const DISCOGS_ID_REGEX = /^\d{1,15}$/;
+export const MAX_PAGE_SIZE = 100;
 
 /** Strip angle brackets (basic XSS guard) and trim surrounding whitespace. */
 export function sanitizeText(value: unknown): string {
@@ -28,11 +31,74 @@ export function isValidNameLength(value: unknown): boolean {
   return String(value).length <= MAX_NAME_LENGTH;
 }
 
+/** An mbid is valid when absent/empty or a MusicBrainz UUID. */
+export function isValidMbid(mbid: unknown): boolean {
+  if (mbid === undefined || mbid === null || mbid === '') return true;
+  return MBID_REGEX.test(String(mbid).trim());
+}
+
+/** A Discogs release ID is valid when absent/empty or numeric. */
+export function isValidDiscogsId(id: unknown): boolean {
+  if (id === undefined || id === null || id === '') return true;
+  return DISCOGS_ID_REGEX.test(String(id).trim());
+}
+
+/**
+ * Parse and clamp pagination query params. Non-numeric or out-of-range values
+ * fall back to safe defaults (page >= 1, 1 <= pageSize <= MAX_PAGE_SIZE).
+ */
+export function parsePagination(
+  query: { page?: unknown; pageSize?: unknown },
+  defaults: { page?: number; pageSize?: number } = {}
+): { page: number; pageSize: number } {
+  const defaultPage = defaults.page ?? 1;
+  const defaultPageSize = defaults.pageSize ?? 20;
+
+  let page = parseInt(String(query.page), 10);
+  if (!Number.isFinite(page) || page < 1) page = defaultPage;
+
+  let pageSize = parseInt(String(query.pageSize), 10);
+  if (!Number.isFinite(pageSize) || pageSize < 1) pageSize = defaultPageSize;
+  if (pageSize > MAX_PAGE_SIZE) pageSize = MAX_PAGE_SIZE;
+
+  return { page, pageSize };
+}
+
+/**
+ * Neutralize spreadsheet formula injection in CSV cells. Values starting with
+ * =, +, -, @ (or tab/CR variants) are prefixed with a single quote so Excel
+ * and LibreOffice treat them as text.
+ */
+export function escapeCsvFormula(value: unknown): string {
+  const str = String(value ?? '');
+  return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+}
+
+/**
+ * Detect the real image type from magic bytes. Returns 'jpeg', 'png', 'webp'
+ * or null when the buffer is not one of the allowed formats.
+ */
+export function detectImageType(buffer: Buffer): 'jpeg' | 'png' | 'webp' | null {
+  if (!buffer || buffer.length < 12) return null;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 &&
+    buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a
+  ) return 'png';
+  if (
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) return 'webp';
+  return null;
+}
+
 export interface AlbumInput {
   upc?: unknown;
   artist?: unknown;
   title?: unknown;
   release_date?: unknown;
+  mbid?: unknown;
+  discogs_id?: unknown;
 }
 
 /**
@@ -43,7 +109,7 @@ export function validateAlbumInput(
   input: AlbumInput,
   { requireNames }: { requireNames: boolean }
 ): string | null {
-  const { upc, artist, title, release_date } = input;
+  const { upc, artist, title, release_date, mbid, discogs_id } = input;
 
   if (requireNames) {
     if (!artist || !title) {
@@ -62,6 +128,12 @@ export function validateAlbumInput(
   }
   if (!isValidReleaseDate(release_date)) {
     return 'Release date must be in YYYY, YYYY-MM, or YYYY-MM-DD format';
+  }
+  if (!isValidMbid(mbid)) {
+    return 'MusicBrainz ID must be a valid UUID';
+  }
+  if (!isValidDiscogsId(discogs_id)) {
+    return 'Discogs ID must be numeric';
   }
 
   return null;

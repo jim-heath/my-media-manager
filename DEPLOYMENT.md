@@ -94,6 +94,7 @@ Create `/etc/nginx/sites-available/your-domain.com`:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=app_api:10m rate=50r/m;
+limit_req_zone $binary_remote_addr zone=app_auth:10m rate=5r/m;
 
 server {
     listen 80;
@@ -120,6 +121,16 @@ server {
 
     location / {
         try_files $uri $uri/ /index.html;
+    }
+
+    # Brute-force protection for login/registration endpoints
+    location /api/auth/ {
+        limit_req zone=app_auth burst=5 nodelay;
+        proxy_pass http://127.0.0.1:<BACKEND_PORT>;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location ~ ^/(api|upload|admin|content-manager|content-type-builder|users-permissions|i18n) {
