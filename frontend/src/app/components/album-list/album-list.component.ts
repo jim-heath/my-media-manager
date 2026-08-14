@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, AfterViewChecked, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AlbumService } from '../../services/album.service';
 import { AuthService } from '../../services/auth.service';
@@ -39,6 +39,33 @@ import { environment } from '../../../environments/environment';
         </button>
       </div>
 
+      <div class="view-controls" *ngIf="!loading">
+        <div class="split-button" role="group" aria-label="Album view">
+          <button
+            type="button"
+            class="btn"
+            [class.active]="viewMode === 'grid'"
+            (click)="setView('grid')"
+            aria-pressed="viewMode === 'grid'"
+          >Grid</button>
+          <button
+            type="button"
+            class="btn"
+            [class.active]="viewMode === 'list'"
+            (click)="setView('list')"
+            aria-pressed="viewMode === 'list'"
+          >List</button>
+          <button
+            type="button"
+            class="btn"
+            [class.active]="viewMode === 'compact'"
+            (click)="setView('compact')"
+            aria-pressed="viewMode === 'compact'"
+          >Compact</button>
+        </div>
+
+      </div>
+
       <div *ngIf="showingIssues" style="margin-bottom: 15px;">
         <span style="margin-right: 10px; color: #666;">Showing albums with issues</span>
         <button class="btn btn-secondary" (click)="toggleIssues()">Show All Albums</button>
@@ -47,38 +74,97 @@ import { environment } from '../../../environments/environment';
       <div *ngIf="loading" class="alert alert-info">Loading albums...</div>
       <div *ngIf="error" class="alert alert-error">{{ error }}</div>
 
-      <div class="grid" *ngIf="!loading && albums.length > 0">
-        <div 
-          class="album-card" 
-          *ngFor="let album of albums"
-          [routerLink]="['/albums', album.documentId]"
-          style="cursor: pointer;"
-        >
-          <img 
-            *ngIf="album.cover" 
-            [src]="mediaUrl + (album.cover.formats.thumbnail.url || album.cover.url)" 
-            class="album-cover"
-            [alt]="album.title"
+      <ng-container *ngIf="!loading && albums.length > 0" [ngSwitch]="viewMode">
+        <!-- Default grid view -->
+        <div *ngSwitchCase="'grid'" class="grid">
+          <div
+            class="album-card"
+            *ngFor="let album of albums"
+            [routerLink]="['/albums', album.documentId]"
+            style="cursor: pointer;"
           >
-          <div *ngIf="!album.cover" class="album-cover" style="display: flex; align-items: center; justify-content: center; background: #e0e0e0;">
-            <span>No Cover</span>
-          </div>
-          
-          <div class="album-info">
-            <div class="album-title" [title]="album.title">{{ album.title }}</div>
-            <div class="album-artist">{{ album.artist }}</div>
-            <div class="album-meta">
-              <span *ngIf="album.release_date">{{ album.release_date }}</span>
-              <span *ngIf="album.tracks"> • {{ album.tracks.length }} tracks</span>
+            <img
+              *ngIf="album.cover"
+              [src]="mediaUrl + (album.cover.formats.thumbnail.url || album.cover.url)"
+              class="album-cover"
+              [alt]="album.title"
+            >
+            <div *ngIf="!album.cover" class="album-cover" style="display: flex; align-items: center; justify-content: center; background: #e0e0e0;">
+              <span>No Cover</span>
             </div>
-            <div style="margin-top: 8px;">
-              <span *ngIf="album.metadata_status !== 'completed'" class="badge badge-{{album.metadata_status}}">{{ album.metadata_status }}</span>
-              <span *ngIf="album.issues?.includes('missing_cover')" class="badge badge-missing-cover">missing cover</span>
-              <span *ngIf="album.issues?.includes('metadata_error')" class="badge badge-metadata-error" [title]="album.fetch_error || ''">metadata error</span>
+            <div class="album-info">
+              <div class="album-title" [title]="album.title">{{ album.title }}</div>
+              <div class="album-artist">{{ album.artist }}</div>
+              <div class="album-meta">
+                <span *ngIf="album.release_date">{{ album.release_date }}</span>
+                <span *ngIf="album.tracks"> • {{ album.tracks.length }} tracks</span>
+              </div>
+              <div style="margin-top: 8px;">
+                <span *ngIf="album.metadata_status !== 'completed'" class="badge badge-{{album.metadata_status}}">{{ album.metadata_status }}</span>
+                <span *ngIf="album.issues?.includes('missing_cover')" class="badge badge-missing-cover">missing cover</span>
+                <span *ngIf="album.issues?.includes('metadata_error')" class="badge badge-metadata-error" [title]="album.fetch_error || ''">metadata error</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- List view: one album per row, square cover left, info right -->
+        <div *ngSwitchCase="'list'" class="view-list">
+          <div
+            class="album-list-item"
+            *ngFor="let album of albums"
+            [routerLink]="['/albums', album.documentId]"
+          >
+            <div class="list-cover-wrap">
+              <img
+                *ngIf="album.cover"
+                [src]="mediaUrl + (album.cover.formats.thumbnail.url || album.cover.url)"
+                class="list-cover"
+                [alt]="album.title"
+              >
+              <div *ngIf="!album.cover" class="list-cover" style="display: flex; align-items: center; justify-content: center; background: #e0e0e0;">
+                <span>No Cover</span>
+              </div>
+            </div>
+            <div class="list-info">
+              <div class="album-title" [title]="album.title">{{ album.title }}</div>
+              <div class="album-artist">{{ album.artist }}</div>
+              <div class="album-meta">
+                <span *ngIf="album.release_date">{{ album.release_date }}</span>
+                <span *ngIf="album.tracks"> • {{ album.tracks.length }} tracks</span>
+              </div>
+              <div style="margin-top: 8px;">
+                <span *ngIf="album.metadata_status !== 'completed'" class="badge badge-{{album.metadata_status}}">{{ album.metadata_status }}</span>
+                <span *ngIf="album.issues?.includes('missing_cover')" class="badge badge-missing-cover">missing cover</span>
+                <span *ngIf="album.issues?.includes('metadata_error')" class="badge badge-metadata-error" [title]="album.fetch_error || ''">metadata error</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact grid view: smaller square covers, more per row -->
+        <div *ngSwitchCase="'compact'" class="view-compact">
+          <div
+            class="compact-card"
+            *ngFor="let album of albums"
+            [routerLink]="['/albums', album.documentId]"
+          >
+            <img
+              *ngIf="album.cover"
+              [src]="mediaUrl + (album.cover.formats.thumbnail.url || album.cover.url)"
+              class="compact-cover"
+              [alt]="album.title"
+            >
+            <div *ngIf="!album.cover" class="compact-cover" style="display: flex; align-items: center; justify-content: center; background: #e0e0e0;">
+              <span>No Cover</span>
+            </div>
+            <div class="compact-info">
+              <div class="compact-title" [title]="album.title">{{ album.title }}</div>
+              <div class="compact-artist">{{ album.artist }}</div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
 
       <div *ngIf="!loading && albums.length === 0" class="alert alert-info">
         No albums found. 
@@ -86,26 +172,8 @@ import { environment } from '../../../environments/environment';
         <span *ngIf="!isAuthenticated">Sign in to import albums.</span>
       </div>
 
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button
-          (click)="changePage(currentPage - 1)"
-          [disabled]="currentPage === 1"
-        >Previous</button>
-
-        <ng-container *ngFor="let item of visiblePages">
-          <span *ngIf="item === '...'" style="padding: 8px 12px; color: #666;">...</span>
-          <button
-            *ngIf="item !== '...'"
-            (click)="changePage(+item)"
-            [class.active]="currentPage === +item"
-          >{{ item }}</button>
-        </ng-container>
-
-        <button
-          (click)="changePage(currentPage + 1)"
-          [disabled]="currentPage === totalPages"
-        >Next</button>
-      </div>
+      <div *ngIf="loadingMore" class="alert alert-info">Loading more albums...</div>
+      <div #sentinel *ngIf="hasMore" class="sentinel" aria-hidden="true"></div>
 
       <div style="text-align: center; margin-top: 10px; color: #666;">
         Showing {{ albums.length }} of {{ totalItems }} albums
@@ -130,43 +198,31 @@ import { environment } from '../../../environments/environment';
     }
   `]
 })
-export class AlbumListComponent implements OnInit, OnDestroy {
+export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, AfterViewChecked {
   albums: Album[] = [];
   loading = false;
   error = '';
   searchQuery = '';
   isAuthenticated = false;
   showingIssues = false;
+  viewMode: 'grid' | 'list' | 'compact' = 'grid';
   readonly mediaUrl = environment.apiBaseUrl;
 
   currentPage = 1;
-  pageSize = 21;  // Multiple of 3 for clean grid rows
+  pageSize = 24;
   totalItems = 0;
   totalPages = 0;
   animatedCount = 0;
   private animationFrame: number | null = null;
+  loadingMore = false;
+  private observer?: IntersectionObserver;
+  private observed = false;
+  private shouldCheckMore = false;
 
-  // Smart pagination: show first, last, current neighborhood, and ellipsis
-  get visiblePages(): (number | string)[] {
-    const total = this.totalPages;
-    const current = this.currentPage;
-    const delta = 2; // pages to show on each side of current
+  @ViewChild('sentinel', { static: false }) sentinel?: ElementRef;
 
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
-    }
-
-    const pages: (number | string)[] = [];
-    const left = Math.max(2, current - delta);
-    const right = Math.min(total - 1, current + delta);
-
-    pages.push(1);
-    if (left > 2) pages.push('...');
-    for (let i = left; i <= right; i++) pages.push(i);
-    if (right < total - 1) pages.push('...');
-    pages.push(total);
-
-    return pages;
+  get hasMore(): boolean {
+    return this.albums.length < this.totalItems;
   }
 
   constructor(
@@ -183,8 +239,10 @@ export class AlbumListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const params = this.route.snapshot.queryParams;
     this.searchQuery = params['q'] || '';
-    this.currentPage = parseInt(params['page'], 10) || 1;
+    this.currentPage = 1;
     this.showingIssues = params['issues'] === 'true';
+    const savedView = localStorage.getItem('albumViewMode') as 'grid' | 'list' | 'compact' | null;
+    this.viewMode = savedView && ['grid', 'list', 'compact'].includes(savedView) ? savedView : 'grid';
     this.loadAlbums();
     this.startCounterAnimation();
   }
@@ -194,7 +252,6 @@ export class AlbumListComponent implements OnInit, OnDestroy {
       relativeTo: this.route,
       queryParams: {
         q: this.searchQuery || null,
-        page: this.currentPage > 1 ? this.currentPage.toString() : null,
         issues: this.showingIssues ? 'true' : null
       }
     });
@@ -204,6 +261,7 @@ export class AlbumListComponent implements OnInit, OnDestroy {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
     }
+    this.observer?.disconnect();
   }
 
   private startCounterAnimation(): void {
@@ -241,7 +299,23 @@ export class AlbumListComponent implements OnInit, OnDestroy {
   }
 
   loadAlbums(): void {
-    this.loading = true;
+    this.currentPage = 1;
+    this.albums = [];
+    this.loadBatch();
+  }
+
+  private loadMore(): void {
+    if (this.loadingMore || !this.hasMore) return;
+    this.currentPage++;
+    this.loadBatch();
+  }
+
+  private loadBatch(): void {
+    if (this.albums.length === 0) {
+      this.loading = true;
+    } else {
+      this.loadingMore = true;
+    }
     this.error = '';
 
     const request = this.showingIssues
@@ -255,12 +329,15 @@ export class AlbumListComponent implements OnInit, OnDestroy {
 
     request.subscribe({
       next: (response: AlbumResponse) => {
-        this.albums = response.data;
+        const newAlbums = response.data;
+        this.albums = this.albums.length === 0 ? newAlbums : [...this.albums, ...newAlbums];
         const pagination = response.meta.pagination;
         const oldTotal = this.totalItems;
         this.totalItems = pagination.total;
         this.totalPages = pagination.pageCount;
         this.loading = false;
+        this.loadingMore = false;
+        this.shouldCheckMore = true;
         // Keep the counter in sync with the latest total. Animate larger changes
         // for a nice effect; snap small ones so it never shows a stale value.
         if (this.totalItems !== oldTotal) {
@@ -274,8 +351,44 @@ export class AlbumListComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.error = 'Failed to load albums: ' + err.message;
         this.loading = false;
+        this.loadingMore = false;
       }
     });
+  }
+
+  ngAfterViewInit(): void {
+    this.observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry?.isIntersecting && !this.loading && !this.loadingMore && this.hasMore) {
+        this.loadMore();
+      }
+    }, { root: null, rootMargin: '0px 0px 200px 0px', threshold: 0 });
+  }
+
+  ngAfterViewChecked(): void {
+    if (this.hasMore && this.observer && this.sentinel?.nativeElement && !this.observed) {
+      this.observer.observe(this.sentinel.nativeElement);
+      this.observed = true;
+    }
+    if (!this.hasMore && this.observed) {
+      this.observer?.disconnect();
+      this.observed = false;
+    }
+    if (this.shouldCheckMore) {
+      this.shouldCheckMore = false;
+      this.checkLoadMore();
+    }
+  }
+
+  private checkLoadMore(): void {
+    if (this.loading || this.loadingMore || !this.hasMore || !this.sentinel?.nativeElement || typeof window === 'undefined') {
+      return;
+    }
+    const rect = this.sentinel.nativeElement.getBoundingClientRect();
+    const viewportBottom = window.innerHeight || document.documentElement.clientHeight;
+    if (rect.top <= viewportBottom) {
+      setTimeout(() => this.loadMore(), 0);
+    }
   }
 
   search(): void {
@@ -299,11 +412,12 @@ export class AlbumListComponent implements OnInit, OnDestroy {
     this.loadAlbums();
   }
 
-  changePage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.updateUrl();
-      this.loadAlbums();
-    }
+  setView(mode: 'grid' | 'list' | 'compact'): void {
+    this.viewMode = mode;
+    localStorage.setItem('albumViewMode', mode);
+    this.currentPage = 1;
+    this.updateUrl();
+    this.loadAlbums();
   }
+
 }
