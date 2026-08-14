@@ -18,7 +18,7 @@ import { environment } from '../../../environments/environment';
 
       <div class="advanced-section">
         <h3>Issues</h3>
-        <p class="advanced-desc">Review albums with missing covers or failed metadata.</p>
+        <p class="advanced-desc">Review albums with missing covers, failed metadata, or invalid years.</p>
         <button class="btn btn-warning" (click)="showIssues()">
           Show Issues ({{ issueCount }})
         </button>

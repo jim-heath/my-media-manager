@@ -123,6 +123,7 @@ import { environment } from '../../../environments/environment';
                 <span *ngIf="album.metadata_status !== 'completed'" class="badge badge-{{album.metadata_status}}">{{ album.metadata_status }}</span>
                 <span *ngIf="album.issues?.includes('missing_cover')" class="badge badge-missing-cover">missing cover</span>
                 <span *ngIf="album.issues?.includes('metadata_error')" class="badge badge-metadata-error" [title]="album.fetch_error || ''">metadata error</span>
+                <span *ngIf="album.issues?.includes('invalid_year')" class="badge badge-invalid-year">invalid year</span>
               </div>
             </div>
           </div>
@@ -157,6 +158,7 @@ import { environment } from '../../../environments/environment';
                 <span *ngIf="album.metadata_status !== 'completed'" class="badge badge-{{album.metadata_status}}">{{ album.metadata_status }}</span>
                 <span *ngIf="album.issues?.includes('missing_cover')" class="badge badge-missing-cover">missing cover</span>
                 <span *ngIf="album.issues?.includes('metadata_error')" class="badge badge-metadata-error" [title]="album.fetch_error || ''">metadata error</span>
+                <span *ngIf="album.issues?.includes('invalid_year')" class="badge badge-invalid-year">invalid year</span>
               </div>
             </div>
           </div>

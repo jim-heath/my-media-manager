@@ -281,6 +281,7 @@ body {
 .badge-failed { background: #dc3545; color: #fff; }
 .badge-missing-cover { background: #6c757d; color: #fff; }
 .badge-metadata-error { background: #dc3545; color: #fff; }
+.badge-invalid-year { background: #e69138; color: #fff; }
 
 .pagination {
   display: flex;

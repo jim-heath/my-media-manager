@@ -10,7 +10,8 @@ import {
   parseSort,
   parseSearchField,
   escapeCsvFormula,
-  detectImageType
+  detectImageType,
+  isValidReleaseDate
 } from '../validation';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -575,7 +576,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     }
   },
 
-  // Identify albums with metadata errors or missing covers
+  // Identify albums with metadata errors, missing covers, or invalid years
   async issues(ctx) {
     const { page, pageSize } = parsePagination(ctx.query);
     const sort = parseSort(ctx.query.sort);
@@ -583,7 +584,14 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const filters: any = {
       $or: [
         { metadata_status: 'failed' },
-        { cover: null }
+        { cover: null },
+        {
+          $and: [
+            { release_date: { $notNull: true } },
+            { release_date: { $ne: '' } },
+            { release_date: { $lt: '1000' } }
+          ]
+        }
       ]
     };
 
@@ -604,6 +612,9 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
       }
       if (album.metadata_status === 'failed') {
         issues.push('metadata_error');
+      }
+      if (album.release_date && album.release_date !== '' && (album.release_date < '1000' || !isValidReleaseDate(album.release_date))) {
+        issues.push('invalid_year');
       }
       return {
         ...album,
