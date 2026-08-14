@@ -438,7 +438,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   }
 
   private tryRestoreScroll(): void {
-    if (this.restoreScrollY === null || typeof window === 'undefined' || !this.sentinel?.nativeElement) {
+    if (this.restoreScrollY === null || typeof window === 'undefined' || this.loading || this.loadingMore) {
       return;
     }
     const docHeight = document.documentElement.scrollHeight;

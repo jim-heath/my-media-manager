@@ -129,6 +129,23 @@ upc,artist,title
 | `length` | integer | seconds |
 | `album` | relation | belongs to Album |
 
+
+## Development
+
+### Backend
+
+```bash
+cd backend
+npm run develop
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm start
+```
+
 ## Testing
 
 ```bash
