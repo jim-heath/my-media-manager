@@ -10,7 +10,7 @@ export class AlbumService {
 
   constructor(private http: HttpClient) { }
 
-  getAlbums(search?: string, artist?: string, page: number = 1, pageSize: number = 20): Observable<AlbumResponse> {
+  getAlbums(search?: string, artist?: string, page: number = 1, pageSize: number = 20, sort?: string): Observable<AlbumResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
@@ -21,14 +21,21 @@ export class AlbumService {
     if (artist) {
       params = params.set('artist', artist);
     }
+    if (sort) {
+      params = params.set('sort', sort);
+    }
 
     return this.http.get<AlbumResponse>(`${this.apiUrl}/search`, { params });
   }
 
-  getIssues(page: number = 1, pageSize: number = 20): Observable<AlbumResponse> {
+  getIssues(page: number = 1, pageSize: number = 20, sort?: string): Observable<AlbumResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
+
+    if (sort) {
+      params = params.set('sort', sort);
+    }
 
     return this.http.get<AlbumResponse>(`${this.apiUrl}/issues`, { params });
   }

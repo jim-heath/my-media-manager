@@ -40,6 +40,18 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <div class="view-controls" *ngIf="!loading">
+        <div class="sort-control">
+          <label for="sort-by" class="sort-label">Sort</label>
+          <select
+            id="sort-by"
+            class="form-control sort-select"
+            [ngModel]="sortBy"
+            (ngModelChange)="setSort($event)"
+          >
+            <option *ngFor="let option of sortOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
         <div class="split-button" role="group" aria-label="Album view">
           <button
             type="button"
@@ -208,6 +220,14 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   viewMode: 'grid' | 'list' | 'compact' = 'grid';
   readonly mediaUrl = environment.apiBaseUrl;
 
+  readonly sortOptions = [
+    { value: 'artist:asc', label: 'Artist (A–Z)' },
+    { value: 'artist:desc', label: 'Artist (Z–A)' },
+    { value: 'release_date:asc', label: 'Year (oldest first)' },
+    { value: 'release_date:desc', label: 'Year (newest first)' }
+  ];
+  sortBy = 'artist:asc';
+
   currentPage = 1;
   pageSize = 24;
   totalItems = 0;
@@ -241,6 +261,8 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
     this.searchQuery = params['q'] || '';
     this.currentPage = 1;
     this.showingIssues = params['issues'] === 'true';
+    const requestedSort = String(params['sort'] || '');
+    this.sortBy = this.sortOptions.some(o => o.value === requestedSort) ? requestedSort : 'artist:asc';
     const savedView = localStorage.getItem('albumViewMode') as 'grid' | 'list' | 'compact' | null;
     this.viewMode = savedView && ['grid', 'list', 'compact'].includes(savedView) ? savedView : 'grid';
     this.loadAlbums();
@@ -252,6 +274,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
       relativeTo: this.route,
       queryParams: {
         q: this.searchQuery || null,
+        sort: this.sortBy !== 'artist:asc' ? this.sortBy : null,
         issues: this.showingIssues ? 'true' : null
       }
     });
@@ -319,12 +342,13 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
     this.error = '';
 
     const request = this.showingIssues
-      ? this.albumService.getIssues(this.currentPage, this.pageSize)
+      ? this.albumService.getIssues(this.currentPage, this.pageSize, this.sortBy)
       : this.albumService.getAlbums(
           this.searchQuery || undefined,
           undefined,
           this.currentPage,
-          this.pageSize
+          this.pageSize,
+          this.sortBy
         );
 
     request.subscribe({
@@ -415,6 +439,13 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   setView(mode: 'grid' | 'list' | 'compact'): void {
     this.viewMode = mode;
     localStorage.setItem('albumViewMode', mode);
+    this.currentPage = 1;
+    this.updateUrl();
+    this.loadAlbums();
+  }
+
+  setSort(sort: string): void {
+    this.sortBy = this.sortOptions.some(o => o.value === sort) ? sort : 'artist:asc';
     this.currentPage = 1;
     this.updateUrl();
     this.loadAlbums();

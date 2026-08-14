@@ -365,6 +365,21 @@ body {
   border-left-color: #007bff;
 }
 
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sort-label {
+  font-size: 13px;
+  color: #666;
+}
+.sort-select {
+  width: auto;
+  min-width: 150px;
+  padding: 7px 10px;
+}
+
 /* List view: one album per row */
 .view-list {
   display: flex;

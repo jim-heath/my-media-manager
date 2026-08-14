@@ -8,6 +8,9 @@ export const MBID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 export const DISCOGS_ID_REGEX = /^\d{1,15}$/;
 export const MAX_PAGE_SIZE = 100;
 
+export const SORTABLE_FIELDS = ['artist', 'release_date', 'title'] as const;
+export const SORT_ORDERS = ['asc', 'desc'] as const;
+
 /** Strip angle brackets (basic XSS guard) and trim surrounding whitespace. */
 export function sanitizeText(value: unknown): string {
   return String(value ?? '').replace(/[<>]/g, '').trim();
@@ -62,6 +65,28 @@ export function parsePagination(
   if (pageSize > MAX_PAGE_SIZE) pageSize = MAX_PAGE_SIZE;
 
   return { page, pageSize };
+}
+
+/**
+ * Parse and whitelist a sort query param. Only the configured fields and
+ * asc/desc directions are allowed; anything else falls back to the default.
+ */
+export function parseSort(
+  sortQuery: unknown,
+  defaults: { field?: string; order?: string } = {}
+): string[] {
+  const defaultField = SORTABLE_FIELDS.includes(String(defaults.field) as any) ? String(defaults.field) : 'artist';
+  const defaultOrder = SORT_ORDERS.includes(String(defaults.order) as any) ? String(defaults.order) : 'asc';
+  const defaultSort = `${defaultField}:${defaultOrder}`;
+
+  const raw = String(sortQuery || defaultSort).toLowerCase();
+  const [field, order] = raw.split(':');
+
+  if (!SORTABLE_FIELDS.includes(field as any) || !SORT_ORDERS.includes(order as any)) {
+    return [defaultSort, 'title:asc'];
+  }
+
+  return [`${field}:${order}`, 'title:asc'];
 }
 
 /**

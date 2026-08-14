@@ -7,6 +7,7 @@ import {
   validateAlbumInput,
   sanitizeText,
   parsePagination,
+  parseSort,
   escapeCsvFormula,
   detectImageType
 } from '../validation';
@@ -179,6 +180,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
   async search(ctx) {
     const { q, artist } = ctx.query;
     const { page, pageSize } = parsePagination(ctx.query);
+    const sort = parseSort(ctx.query.sort);
 
     const filters: any = {};
     
@@ -196,7 +198,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const albums = await strapi.documents('api::album.album').findMany({
       filters,
       populate: ['tracks', 'cover'],
-      sort: ['artist:asc', 'title:asc'],
+      sort: sort as any,
       start: (page - 1) * pageSize,
       limit: pageSize
     });
@@ -565,6 +567,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
   // Identify albums with metadata errors or missing covers
   async issues(ctx) {
     const { page, pageSize } = parsePagination(ctx.query);
+    const sort = parseSort(ctx.query.sort);
 
     const filters: any = {
       $or: [
@@ -576,7 +579,7 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const albums = await strapi.documents('api::album.album').findMany({
       filters,
       populate: ['tracks', 'cover'],
-      sort: ['artist:asc', 'title:asc'],
+      sort: sort as any,
       start: (page - 1) * pageSize,
       limit: pageSize
     });
