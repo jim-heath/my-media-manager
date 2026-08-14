@@ -283,6 +283,16 @@ body {
 .badge-metadata-error { background: #dc3545; color: #fff; }
 .badge-invalid-year { background: #e69138; color: #fff; }
 
+.artist-link {
+  display: inline-flex;
+  color: #666;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.artist-link:hover {
+  color: #333;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

@@ -53,7 +53,19 @@ import { environment } from '../../../environments/environment';
             <div class="detail-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
               <div style="min-width: 0;">
                 <h1>{{ album.title }}</h1>
-                <h2 style="color: #666; font-weight: normal;">{{ album.artist }}</h2>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <h2 style="color: #666; font-weight: normal; margin: 0;">{{ album.artist }}</h2>
+                  <a *ngIf="album.artist" class="artist-link" [href]="discogsArtistUrl" target="_blank" rel="noopener" title="Search Discogs" aria-label="Search Discogs for artist">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                      <path d="M14 3h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3zm3 16v-7h2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7v2H5v12h12z"/>
+                    </svg>
+                  </a>
+                  <a *ngIf="album.artist" class="artist-link" [href]="musicbrainzArtistUrl" target="_blank" rel="noopener" title="Search MusicBrainz" aria-label="Search MusicBrainz for artist">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
               <div class="header-actions" style="display: flex; gap: 10px; flex-shrink: 0;">
                 <button *ngIf="isAuthenticated" class="btn btn-secondary" (click)="startEdit()" style="white-space: nowrap;" aria-label="Edit">
@@ -447,6 +459,16 @@ export class AlbumDetailComponent implements OnInit {
     if (!this.album?.cover) return '';
     const large = this.album.cover.formats?.large?.url;
     return this.mediaUrl + (large || this.album.cover.url);
+  }
+
+  get discogsArtistUrl(): string {
+    const artist = this.album?.artist || '';
+    return 'https://www.discogs.com/search/?q=' + encodeURIComponent(artist) + '&type=artist';
+  }
+
+  get musicbrainzArtistUrl(): string {
+    const artist = this.album?.artist || '';
+    return 'https://musicbrainz.org/search?query=' + encodeURIComponent(artist) + '&type=artist';
   }
 
   // Edit mode
