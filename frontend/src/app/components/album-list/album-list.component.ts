@@ -19,6 +19,13 @@ import { environment } from '../../../environments/environment';
       </div>
       
       <div class="search-box">
+        <select
+          class="form-control search-field"
+          [ngModel]="searchBy"
+          (ngModelChange)="setSearchBy($event)"
+        >
+          <option *ngFor="let option of searchOptions" [value]="option.value">{{ option.label }}</option>
+        </select>
         <input
           type="text"
           class="form-control"
@@ -229,6 +236,14 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   ];
   sortBy = 'artist:asc';
 
+  readonly searchOptions = [
+    { value: 'artist', label: 'Artist' },
+    { value: 'title', label: 'Album' },
+    { value: 'year', label: 'Year' },
+    { value: 'all', label: 'All fields' }
+  ];
+  searchBy = 'artist';
+
   currentPage = 1;
   pageSize = 24;
   totalItems = 0;
@@ -266,6 +281,8 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
     this.showingIssues = params['issues'] === 'true';
     const requestedSort = String(params['sort'] || '');
     this.sortBy = this.sortOptions.some(o => o.value === requestedSort) ? requestedSort : 'artist:asc';
+    const requestedSearchBy = String(params['searchBy'] || '');
+    this.searchBy = this.searchOptions.some(o => o.value === requestedSearchBy) ? requestedSearchBy : 'artist';
     const savedView = localStorage.getItem('albumViewMode') as 'grid' | 'list' | 'compact' | null;
     this.viewMode = savedView && ['grid', 'list', 'compact'].includes(savedView) ? savedView : 'grid';
     this.loadAlbums();
@@ -278,6 +295,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
       relativeTo: this.route,
       queryParams: {
         q: this.searchQuery || null,
+        searchBy: this.searchBy !== 'artist' ? this.searchBy : null,
         sort: this.sortBy !== 'artist:asc' ? this.sortBy : null,
         issues: this.showingIssues ? 'true' : null
       }
@@ -359,7 +377,8 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
           undefined,
           this.currentPage,
           this.pageSize,
-          this.sortBy
+          this.sortBy,
+          this.searchBy
         );
 
     request.subscribe({
@@ -451,6 +470,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
 
   reset(): void {
     this.searchQuery = '';
+    this.searchBy = 'artist';
     this.showingIssues = false;
     this.currentPage = 1;
     this.updateUrl();
@@ -474,6 +494,13 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
 
   setSort(sort: string): void {
     this.sortBy = this.sortOptions.some(o => o.value === sort) ? sort : 'artist:asc';
+    this.currentPage = 1;
+    this.updateUrl();
+    this.loadAlbums();
+  }
+
+  setSearchBy(searchBy: string): void {
+    this.searchBy = this.searchOptions.some(o => o.value === searchBy) ? searchBy : 'artist';
     this.currentPage = 1;
     this.updateUrl();
     this.loadAlbums();

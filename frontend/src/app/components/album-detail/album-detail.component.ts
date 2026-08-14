@@ -12,10 +12,11 @@ import { environment } from '../../../environments/environment';
     <div class="card" *ngIf="album">
       <div style="display: flex; gap: 30px; flex-wrap: wrap;">
         <div style="flex: 0 0 300px;">
-          <img 
-            *ngIf="album.cover && !editing" 
-            [src]="mediaUrl + album.cover.url" 
-            style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"
+          <img
+            *ngIf="album.cover && !editing"
+            [src]="mediaUrl + album.cover.url"
+            (click)="openLightbox()"
+            class="detail-cover"
             [alt]="album.title"
           >
           <div 
@@ -309,6 +310,12 @@ import { environment } from '../../../environments/environment';
       {{ error }}
     </div>
 
+    <!-- Cover lightbox -->
+    <div *ngIf="lightboxOpen" class="lightbox-overlay" (click)="closeLightbox()">
+      <button class="lightbox-close" (click)="closeLightbox()" aria-label="Close lightbox">×</button>
+      <img [src]="lightboxImage" class="lightbox-image" (click)="$event.stopPropagation()" [alt]="album?.title">
+    </div>
+
     <!-- Delete confirmation modal -->
     <div *ngIf="showDeleteModal" class="modal-overlay" (click)="cancelDelete()">
       <div class="modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
@@ -433,7 +440,14 @@ export class AlbumDetailComponent implements OnInit {
   enriching = false;
   isAuthenticated = false;
   showDeleteModal = false;
+  lightboxOpen = false;
   readonly mediaUrl = environment.apiBaseUrl;
+
+  get lightboxImage(): string {
+    if (!this.album?.cover) return '';
+    const large = this.album.cover.formats?.large?.url;
+    return this.mediaUrl + (large || this.album.cover.url);
+  }
 
   // Edit mode
   editing = false;
@@ -605,6 +619,15 @@ export class AlbumDetailComponent implements OnInit {
   }
 
   // Delete album
+  openLightbox(): void {
+    if (!this.album?.cover) return;
+    this.lightboxOpen = true;
+  }
+
+  closeLightbox(): void {
+    this.lightboxOpen = false;
+  }
+
   confirmDelete(): void {
     if (!this.album) return;
     this.showDeleteModal = true;

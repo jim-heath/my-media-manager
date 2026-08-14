@@ -8,6 +8,7 @@ import {
   sanitizeText,
   parsePagination,
   parseSort,
+  parseSearchField,
   escapeCsvFormula,
   detectImageType
 } from '../validation';
@@ -181,16 +182,26 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const { q, artist } = ctx.query;
     const { page, pageSize } = parsePagination(ctx.query);
     const sort = parseSort(ctx.query.sort);
+    const searchBy = parseSearchField(ctx.query.searchBy);
 
     const filters: any = {};
-    
+
     if (q) {
-      filters.$or = [
-        { artist: { $containsi: q } },
-        { title: { $containsi: q } }
-      ];
+      if (searchBy === 'all') {
+        filters.$or = [
+          { artist: { $containsi: q } },
+          { title: { $containsi: q } },
+          { release_date: { $containsi: q } }
+        ];
+      } else if (searchBy === 'year') {
+        filters.release_date = { $containsi: q };
+      } else if (searchBy === 'title') {
+        filters.title = { $containsi: q };
+      } else {
+        filters.artist = { $containsi: q };
+      }
     }
-    
+
     if (artist) {
       filters.artist = { $containsi: artist };
     }

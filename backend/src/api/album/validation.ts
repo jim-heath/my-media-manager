@@ -10,6 +10,7 @@ export const MAX_PAGE_SIZE = 100;
 
 export const SORTABLE_FIELDS = ['artist', 'release_date', 'title'] as const;
 export const SORT_ORDERS = ['asc', 'desc'] as const;
+export const SEARCH_FIELDS = ['artist', 'title', 'year', 'all'] as const;
 
 /** Strip angle brackets (basic XSS guard) and trim surrounding whitespace. */
 export function sanitizeText(value: unknown): string {
@@ -87,6 +88,14 @@ export function parseSort(
   }
 
   return [`${field}:${order}`, 'title:asc'];
+}
+
+/**
+ * Parse and whitelist a search-field query param. Defaults to artist.
+ */
+export function parseSearchField(fieldQuery: unknown): string {
+  const raw = String(fieldQuery || 'artist').toLowerCase();
+  return SEARCH_FIELDS.includes(raw as any) ? raw : 'artist';
 }
 
 /**

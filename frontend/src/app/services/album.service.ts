@@ -10,7 +10,7 @@ export class AlbumService {
 
   constructor(private http: HttpClient) { }
 
-  getAlbums(search?: string, artist?: string, page: number = 1, pageSize: number = 20, sort?: string): Observable<AlbumResponse> {
+  getAlbums(search?: string, artist?: string, page: number = 1, pageSize: number = 20, sort?: string, searchBy?: string): Observable<AlbumResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
@@ -23,6 +23,9 @@ export class AlbumService {
     }
     if (sort) {
       params = params.set('sort', sort);
+    }
+    if (searchBy) {
+      params = params.set('searchBy', searchBy);
     }
 
     return this.http.get<AlbumResponse>(`${this.apiUrl}/search`, { params });
