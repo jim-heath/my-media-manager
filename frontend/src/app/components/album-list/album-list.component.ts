@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, AfterViewChecked, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, AfterViewChecked, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AlbumService } from '../../services/album.service';
 import { AuthService } from '../../services/auth.service';
+import { ScrollPositionService } from '../../services/scroll-position.service';
 import { Album, AlbumResponse } from '../../models/album.model';
 import { environment } from '../../../environments/environment';
 
@@ -238,6 +239,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   private observer?: IntersectionObserver;
   private observed = false;
   private shouldCheckMore = false;
+  restoreScrollY: number | null = null;
 
   @ViewChild('sentinel', { static: false }) sentinel?: ElementRef;
 
@@ -249,7 +251,8 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
     private albumService: AlbumService,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private scrollService: ScrollPositionService
   ) {
     this.authService.isAuthenticated$.subscribe(auth => {
       this.isAuthenticated = auth;
@@ -267,6 +270,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
     this.viewMode = savedView && ['grid', 'list', 'compact'].includes(savedView) ? savedView : 'grid';
     this.loadAlbums();
     this.startCounterAnimation();
+    this.restoreScrollY = this.scrollService.consume();
   }
 
   private updateUrl(): void {
@@ -278,6 +282,13 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
         issues: this.showingIssues ? 'true' : null
       }
     });
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    if (typeof window !== 'undefined') {
+      this.scrollService.save(window.scrollY);
+    }
   }
 
   ngOnDestroy(): void {
@@ -398,9 +409,26 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
       this.observer?.disconnect();
       this.observed = false;
     }
+    if (this.restoreScrollY !== null && !this.loading && !this.loadingMore) {
+      this.tryRestoreScroll();
+    }
     if (this.shouldCheckMore) {
       this.shouldCheckMore = false;
       this.checkLoadMore();
+    }
+  }
+
+  private tryRestoreScroll(): void {
+    if (this.restoreScrollY === null || typeof window === 'undefined' || !this.sentinel?.nativeElement) {
+      return;
+    }
+    const docHeight = document.documentElement.scrollHeight;
+    const maxY = docHeight - window.innerHeight;
+    if (this.restoreScrollY <= maxY || !this.hasMore) {
+      window.scrollTo(0, Math.max(0, Math.min(this.restoreScrollY, maxY)));
+      this.restoreScrollY = null;
+    } else if (this.hasMore) {
+      setTimeout(() => this.loadMore(), 0);
     }
   }
 
