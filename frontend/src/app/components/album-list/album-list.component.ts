@@ -278,7 +278,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
 
   ngOnInit(): void {
     const params = this.route.snapshot.queryParams;
-    this.searchQuery = params['q'] || '';
+    this.searchQuery = (params['q'] || '').trim();
     this.currentPage = 1;
     this.showingIssues = params['issues'] === 'true';
     const requestedSort = String(params['sort'] || '');
@@ -466,6 +466,7 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
 
   search(): void {
     this.currentPage = 1;
+    this.searchQuery = this.searchQuery.trim();
     this.updateUrl();
     this.loadAlbums();
   }
