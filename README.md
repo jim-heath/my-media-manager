@@ -27,7 +27,7 @@ View the demo site at: https://mmm.restlessmindsstudio.com
 
 ## Prerequisites
 
-- Node.js 18–20 and npm
+- Node.js 20–26 and npm
 
 ## Local development
 
