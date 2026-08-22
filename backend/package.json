@@ -13,8 +13,8 @@
     "test:integration": "jest --runInBand tests/integration"
   },
   "dependencies": {
-    "@strapi/plugin-users-permissions": "5.48.1",
-    "@strapi/strapi": "5.48.1",
+    "@strapi/plugin-users-permissions": "5.52.1",
+    "@strapi/strapi": "5.52.1",
     "axios": "^1.7.9",
     "better-sqlite3": "11.3.0",
     "csv-writer": "^1.6.0",
