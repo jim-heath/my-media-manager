@@ -99,6 +99,30 @@ export function parseSearchField(fieldQuery: unknown): string {
 }
 
 /**
+ * Build a release_date filter for a year query. Accepts a single year
+ * ("1999") or an inclusive range ("1990-1999", reversed ranges allowed).
+ * Because release_date is stored as a zero-padded YYYY[-MM[-DD]] string,
+ * a lexicographic half-open range also matches YYYY-MM and YYYY-MM-DD values.
+ * Returns null when the query is not a year or year range.
+ */
+export function buildYearFilter(query: unknown): Record<string, string> | null {
+  const raw = String(query ?? '').trim();
+
+  const single = /^(\d{4})$/.exec(raw);
+  const range = /^(\d{4})\s*-\s*(\d{4})$/.exec(raw);
+  if (!single && !range) return null;
+
+  let start = Number(single ? single[1] : range[1]);
+  let end = Number(single ? single[1] : range[2]);
+  if (start > end) [start, end] = [end, start];
+
+  // A 5-digit upper bound would break lexicographic comparison, so omit it.
+  if (end >= 9999) return { $gte: String(start) };
+
+  return { $gte: String(start), $lt: String(end + 1) };
+}
+
+/**
  * Neutralize spreadsheet formula injection in CSV cells. Values starting with
  * =, +, -, @ (or tab/CR variants) are prefixed with a single quote so Excel
  * and LibreOffice treat them as text.

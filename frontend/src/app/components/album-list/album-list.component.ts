@@ -29,7 +29,7 @@ import { environment } from '../../../environments/environment';
         <input
           type="text"
           class="form-control"
-          placeholder="Search albums or artists..."
+          [placeholder]="searchPlaceholder"
           [(ngModel)]="searchQuery"
           (keyup.enter)="search()"
         >
@@ -239,12 +239,17 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
   sortBy = 'artist:asc';
 
   readonly searchOptions = [
-    { value: 'artist', label: 'Artist' },
-    { value: 'title', label: 'Album' },
-    { value: 'year', label: 'Year' },
-    { value: 'all', label: 'All fields' }
+    { value: 'artist', label: 'Artist', placeholder: 'Search by artist...' },
+    { value: 'title', label: 'Album', placeholder: 'Search by album...' },
+    { value: 'year', label: 'Year', placeholder: 'Search by year, e.g. 1999 or 1990-1999' },
+    { value: 'all', label: 'All fields', placeholder: 'Search all fields...' }
   ];
   searchBy = 'artist';
+
+  get searchPlaceholder(): string {
+    const option = this.searchOptions.find(o => o.value === this.searchBy);
+    return option ? option.placeholder : 'Search albums...';
+  }
 
   currentPage = 1;
   pageSize = 24;
@@ -504,9 +509,11 @@ export class AlbumListComponent implements OnInit, OnDestroy, AfterViewInit, Aft
 
   setSearchBy(searchBy: string): void {
     this.searchBy = this.searchOptions.some(o => o.value === searchBy) ? searchBy : 'artist';
-    this.currentPage = 1;
     this.updateUrl();
-    this.loadAlbums();
+    if (this.searchQuery.trim()) {
+      this.currentPage = 1;
+      this.loadAlbums();
+    }
   }
 
 }

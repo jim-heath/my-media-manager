@@ -11,7 +11,8 @@ import {
   parseSearchField,
   escapeCsvFormula,
   detectImageType,
-  isValidReleaseDate
+  isValidReleaseDate,
+  buildYearFilter
 } from '../validation';
 
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -188,14 +189,18 @@ export default factories.createCoreController('api::album.album', ({ strapi }) =
     const filters: any = {};
 
     if (q) {
+      const yearFilter = buildYearFilter(q);
       if (searchBy === 'all') {
         filters.$or = [
           { artist: { $containsi: q } },
           { title: { $containsi: q } },
-          { release_date: { $containsi: q } }
+          { release_date: yearFilter || { $containsi: q } }
         ];
       } else if (searchBy === 'year') {
-        filters.release_date = { $containsi: q };
+        // Year search matches whole years (or a YYYY-YYYY range), including
+        // release dates stored as YYYY-MM or YYYY-MM-DD. A non-year query
+        // matches nothing rather than falling back to a substring match.
+        filters.release_date = yearFilter || { $eq: '\u0000' };
       } else if (searchBy === 'title') {
         filters.title = { $containsi: q };
       } else {

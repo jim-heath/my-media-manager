@@ -6,6 +6,7 @@ import {
   isValidMbid,
   isValidDiscogsId,
   parsePagination,
+  buildYearFilter,
   escapeCsvFormula,
   detectImageType,
   validateAlbumInput,
@@ -212,6 +213,53 @@ describe('parsePagination', () => {
   it('falls back on non-numeric or negative input', () => {
     expect(parsePagination({ page: 'abc', pageSize: '-5' })).toEqual({ page: 1, pageSize: 20 });
     expect(parsePagination({ page: '0', pageSize: 'NaN' })).toEqual({ page: 1, pageSize: 20 });
+  });
+});
+
+describe('buildYearFilter', () => {
+  it('turns a single year into a half-open range', () => {
+    expect(buildYearFilter('1999')).toEqual({ $gte: '1999', $lt: '2000' });
+  });
+
+  it('matches YYYY-MM and YYYY-MM-DD values within the year', () => {
+    const filter = buildYearFilter('1999')!;
+    for (const value of ['1999', '1999-05', '1999-05-21', '1999-12-31']) {
+      expect(value >= filter.$gte).toBe(true);
+      expect(value < filter.$lt).toBe(true);
+    }
+  });
+
+  it('excludes dates outside the requested year', () => {
+    const filter = buildYearFilter('1999')!;
+    expect('1998-12-31' >= filter.$gte).toBe(false);
+    expect('2000-01-01' < filter.$lt).toBe(false);
+  });
+
+  it('supports an inclusive year range', () => {
+    expect(buildYearFilter('1990-1999')).toEqual({ $gte: '1990', $lt: '2000' });
+  });
+
+  it('normalizes a reversed range', () => {
+    expect(buildYearFilter('1999-1990')).toEqual({ $gte: '1990', $lt: '2000' });
+  });
+
+  it('tolerates spaces around the range separator', () => {
+    expect(buildYearFilter(' 1990 - 1999 ')).toEqual({ $gte: '1990', $lt: '2000' });
+  });
+
+  it('omits the upper bound at the 4-digit ceiling', () => {
+    expect(buildYearFilter('9999')).toEqual({ $gte: '9999' });
+  });
+
+  it('returns null for partial years and non-year queries', () => {
+    expect(buildYearFilter('19')).toBeNull();
+    expect(buildYearFilter('199')).toBeNull();
+    expect(buildYearFilter('19999')).toBeNull();
+    expect(buildYearFilter('1999-05')).toBeNull();
+    expect(buildYearFilter('nineties')).toBeNull();
+    expect(buildYearFilter('')).toBeNull();
+    expect(buildYearFilter(null)).toBeNull();
+    expect(buildYearFilter(undefined)).toBeNull();
   });
 });
 
