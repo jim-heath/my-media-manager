@@ -3,20 +3,32 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
+
+function makeJwt(exp: number): string {
+  const b64url = (obj: object) =>
+    btoa(JSON.stringify(obj))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  return `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url({ exp })}.sig`;
+}
 
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
+  let routerSpy: jasmine.SpyObj<Router>;
 
   const loginUrl = `${environment.apiBaseUrl}/api/auth/local`;
 
   beforeEach(() => {
     localStorage.clear();
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [AuthService],
+      providers: [AuthService, { provide: Router, useValue: routerSpy }],
     });
     service = TestBed.inject(AuthService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -74,9 +86,42 @@ describe('AuthService', () => {
     localStorage.setItem('auth_token', 'persisted-token');
 
     // Re-create the service so its constructor reads localStorage.
-    const restored = new AuthService({} as any);
+    const restored = new AuthService({} as any, {} as any);
 
     expect(restored.getToken()).toBe('persisted-token');
     expect(restored.isAuthenticated()).toBe(true);
+  });
+
+  it('discards an expired stored token on construction', () => {
+    const expiredJwt = makeJwt(Math.floor(Date.now() / 1000) - 60);
+    localStorage.setItem('auth_token', expiredJwt);
+
+    const restored = new AuthService({} as any, {} as any);
+
+    expect(restored.isAuthenticated()).toBe(false);
+    expect(restored.getToken()).toBeNull();
+    expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
+  it('restores a non-expired stored token on construction', () => {
+    const validJwt = makeJwt(Math.floor(Date.now() / 1000) + 3600);
+    localStorage.setItem('auth_token', validJwt);
+
+    const restored = new AuthService({} as any, {} as any);
+
+    expect(restored.getToken()).toBe(validJwt);
+    expect(restored.isAuthenticated()).toBe(true);
+  });
+
+  it('handleSessionExpired clears the token and navigates to /login', () => {
+    localStorage.setItem('auth_token', 'persisted-token');
+    const restored = new AuthService({} as any, routerSpy);
+
+    restored.handleSessionExpired();
+
+    expect(restored.getToken()).toBeNull();
+    expect(restored.isAuthenticated()).toBe(false);
+    expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
   });
 });
