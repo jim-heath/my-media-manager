@@ -24,6 +24,7 @@ import { AuthService } from '../../services/auth.service';
         >&#9776;</button>
         <nav class="nav-links" [class.open]="menuOpen">
           <a routerLink="/albums" routerLinkActive="active" (click)="closeMenu()">Browse</a>
+          <a routerLink="/wishlist" routerLinkActive="active" (click)="closeMenu()">Wishlist</a>
           <a *ngIf="isAuthenticated" routerLink="/add-album" routerLinkActive="active" (click)="closeMenu()">Add Albums</a>
           <a *ngIf="isAuthenticated" routerLink="/advanced" routerLinkActive="active" (click)="closeMenu()">Advanced</a>
           <a *ngIf="!isAuthenticated" routerLink="/login" (click)="closeMenu()">Login</a>

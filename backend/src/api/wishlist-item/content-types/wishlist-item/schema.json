@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "wishlist_items",
+  "info": {
+    "singularName": "wishlist-item",
+    "pluralName": "wishlist-items",
+    "displayName": "Wishlist Item",
+    "description": "Album the user would like to buy"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "artist": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": false
+    },
+    "upc": {
+      "type": "string",
+      "required": false,
+      "description": "Universal Product Code (optional; some CDs have no barcode)"
+    },
+    "release_date": {
+      "type": "string",
+      "description": "Release date (YYYY, YYYY-MM or YYYY-MM-DD)"
+    },
+    "url": {
+      "type": "string",
+      "description": "Link to the item (e.g. shop or Discogs page)"
+    },
+    "notes": {
+      "type": "text",
+      "required": false
+    },
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    }
+  }
+}

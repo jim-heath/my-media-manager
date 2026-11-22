@@ -11,7 +11,11 @@ import { AddAlbumComponent } from './components/add-album/add-album.component';
 import { LoginComponent } from './components/login/login.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { AdvancedComponent } from './components/advanced/advanced.component';
+import { WishlistComponent } from './components/wishlist/wishlist.component';
+import { WishlistAddComponent } from './components/wishlist-add/wishlist-add.component';
+import { WishlistDetailComponent } from './components/wishlist-detail/wishlist-detail.component';
 import { AlbumService } from './services/album.service';
+import { WishlistService } from './services/wishlist.service';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { AuthGuard } from './guards/auth.guard';
 
@@ -19,6 +23,9 @@ const routes: Routes = [
   { path: '', redirectTo: '/albums', pathMatch: 'full' },
   { path: 'albums', component: AlbumListComponent },
   { path: 'albums/:id', component: AlbumDetailComponent },
+  { path: 'wishlist', component: WishlistComponent },
+  { path: 'wishlist/add', component: WishlistAddComponent, canActivate: [AuthGuard] },
+  { path: 'wishlist/:id', component: WishlistDetailComponent },
   { path: 'add-album', component: AddAlbumComponent, canActivate: [AuthGuard] },
   { path: 'import', redirectTo: '/add-album', pathMatch: 'full' },
   { path: 'advanced', component: AdvancedComponent, canActivate: [AuthGuard] },
@@ -33,7 +40,10 @@ const routes: Routes = [
     AddAlbumComponent,
     LoginComponent,
     NavbarComponent,
-    AdvancedComponent
+    AdvancedComponent,
+    WishlistComponent,
+    WishlistAddComponent,
+    WishlistDetailComponent
   ],
   imports: [
     BrowserModule,
@@ -43,6 +53,7 @@ const routes: Routes = [
   ],
   providers: [
     AlbumService,
+    WishlistService,
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]

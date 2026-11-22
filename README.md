@@ -18,6 +18,7 @@ A personal music collection manager that imports albums, automatically enriches 
 - **Cover art** — downloads and stores album covers; thumbnails generated automatically
 - **Browse and search** — grid view with cover art, search by artist or title, filter by metadata status or issues (missing covers / failed enrichment)
 - **Album detail** — full track listing with track lengths, release date, and links to source records
+- **Wishlist** — track albums you'd like to buy; marking an item as purchased moves it into your collection
 - **Export** — download your collection as CSV (album summary) or JSON (full album + track data)
 - **Advanced tools** — trigger metadata enrichment or cover fetching for the whole collection, view recently added albums, inspect issues
 
@@ -102,6 +103,14 @@ upc,artist,title
 
 `upc` is optional per row. Metadata is fetched automatically after import.
 
+## Wishlist
+
+Use the **Wishlist** page to keep track of albums you'd like to buy. When signed in, click **Add to Wishlist** — only the artist is required; title, UPC, release date, a link (e.g. a shop or Discogs page), notes, and a cover image are all optional. Items can be edited or deleted from their detail page.
+
+When you buy an item, open it and choose **Mark as Purchased** in edit mode. This creates a real album in your collection (carrying over the wishlist cover image, if any) and removes the item from the wishlist — metadata enrichment then runs as usual.
+
+> **Note**: the Strapi **Authenticated** role must be granted the `Wishlist-item` permissions (`create`, `update`, `delete`, `uploadCover`, `purchase`) in **Settings → Users & Permissions → Roles**, the same way the Album write permissions were granted.
+
 ## API rate limits
 
 - **MusicBrainz**: 1 request/second (required by their terms of service — set a real `APP_USER_AGENT` or requests will be blocked)
@@ -128,6 +137,18 @@ upc,artist,title
 | `title` | string | required |
 | `length` | integer | seconds |
 | `album` | relation | belongs to Album |
+
+### Wishlist Item
+| Field | Type | Notes |
+|---|---|---|
+| `artist` | string | required |
+| `title` | string | optional |
+| `upc` | string | optional (not unique) |
+| `release_date` | string | YYYY, YYYY-MM, or YYYY-MM-DD |
+| `url` | string | link to the item |
+| `notes` | text | optional |
+| `cover` | media | stored in `public/uploads/` |
+| `createdAt` | timestamp | when the item was added to the wishlist |
 
 
 ## Development

@@ -525,6 +525,42 @@ export interface ApiTrackTrack extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiWishlistItemWishlistItem
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'wishlist_items';
+  info: {
+    description: 'Album the user would like to buy';
+    displayName: 'Wishlist Item';
+    pluralName: 'wishlist-items';
+    singularName: 'wishlist-item';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    artist: Schema.Attribute.String & Schema.Attribute.Required;
+    cover: Schema.Attribute.Media<'images'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::wishlist-item.wishlist-item'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    release_date: Schema.Attribute.String;
+    title: Schema.Attribute.String;
+    upc: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    url: Schema.Attribute.String;
+  };
+}
+
 export interface PluginContentReleasesRelease
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_releases';
@@ -1038,6 +1074,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::album.album': ApiAlbumAlbum;
       'api::track.track': ApiTrackTrack;
+      'api::wishlist-item.wishlist-item': ApiWishlistItemWishlistItem;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
